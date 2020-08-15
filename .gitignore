@@ -1,0 +1,5 @@
+.DS
+node_modules/
+dist/
+.log
+.env
