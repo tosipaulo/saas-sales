@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const mailer = require('../config/nodemailer');
 const utils = require('../utils/index');
 const User = require('../schema/User');
@@ -33,6 +34,28 @@ router.post('/register', async (req, res) => {
     return res.send({
       user,
     });
+  } catch (error) {
+    return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
+  }
+});
+
+router.post('/authenticate', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return res.status(400).send({ error: 'Senha ou e-mail inválido' });
+    }
+
+    if (!(await bcrypt.compare(password, user.password))) {
+      return res.status(400).send({ error: 'Senha ou e-mail inválido' });
+    }
+
+    user.password = undefined;
+
+    return res.send({ user });
   } catch (error) {
     return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
   }
