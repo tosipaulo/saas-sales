@@ -17,6 +17,14 @@ const UserSchema = new mongoose.Schema({
     require: true,
     select: false,
   },
+  passwordResetToken: {
+    type: String,
+    select: false,
+  },
+  isConfirm: {
+    type: Boolean,
+    default: false,
+  },
   createAt: {
     type: Date,
     default: Date.now,
