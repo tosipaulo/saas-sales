@@ -87,8 +87,14 @@ router.get('/confirm/:token', (req, res) => {
 
   try {
     utils.verifyToken(token, process.env.HASH_SECRET, async (err, decoded) => {
-      if (err) {
+      if (err && err.name == 'TokenExpiredError') {
         return res.status(401).send({ error: 'Ops, link inválido' });
+      }
+
+      if (err && err.name == 'JsonWebTokenError') {
+        return res
+          .status(401)
+          .send({ error: 'Ops, link quebrado', redirect: true });
       }
 
       const { email } = decoded;
