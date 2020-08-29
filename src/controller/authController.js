@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const mailer = require('../config/nodemailer');
 const utils = require('../utils/index');
@@ -105,6 +106,90 @@ router.get('/confirm/:token', (req, res) => {
     return res
       .status(400)
       .send({ error: 'Ops! Erro ao confirmar seu cadastro' });
+  }
+});
+
+router.post('/forgot_password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).send({ error: 'Usuário ou senha inválido' });
+    }
+
+    const token = crypto.randomBytes(20).toString('hex');
+
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+
+    await User.findByIdAndUpdate(user.id, {
+      $set: {
+        passwordResetToken: token,
+        passwordResetExpires: now,
+      },
+    });
+    const htmlToSend = utils.template({ token }, 'forgot_password');
+
+    mailer.sendMail(
+      {
+        to: 'tosi.paulo@gmail.com',
+        from: ':: TOSI :: <tosi.paulo@gmail.com>',
+        subject: '🚀 testando reset 🚀',
+        html: htmlToSend,
+      },
+      (err) => {
+        if (err) {
+          return res
+            .status(400)
+            .send({ error: 'Não foi possível enviar recuperação por e-mail.' });
+        }
+      }
+    );
+    return res.send({
+      message: 'Legal, agora falta confirmar um e-mail que acabamos de enviar!',
+    });
+  } catch (error) {
+    return res.status(400).send({ error: 'Ops! Erro ao resetar sua senha' });
+  }
+});
+
+router.post('/reset_password', async (req, res) => {
+  const { email, token, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email }).select(
+      '+passwordResetToken passwordResetExpires'
+    );
+
+    if (!user) {
+      return res.status(400).send({ error: 'Ops! Usuário ou senha inválida' });
+    }
+
+    if (token !== user.passwordResetToken) {
+      return res.status(400).send({
+        error: 'Ops! Token experidado, por favor solicite outro reset de senha',
+      });
+    }
+
+    const now = new Date();
+
+    if (now > user.passwordResetExpires) {
+      return res.status(400).send({
+        error: 'Ops! Link experidado, por favor solicite outro reset de senha',
+      });
+    }
+
+    user.password = password;
+
+    await user.save();
+
+    res.send({ message: 'Legal! Senha cadastrado com sucesso.' });
+  } catch (err) {
+    return res.status(400).send({
+      error: 'Ops! Aconteceu algum problema ao registrar sua nova senha.',
+    });
   }
 });
 
