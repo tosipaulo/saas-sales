@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto-js');
 
 const mailer = require('../config/nodemailer');
 const utils = require('../utils/index');
@@ -31,17 +30,30 @@ router.post('/register', async (req, res) => {
     }
 
     const userReq = req.body;
-    userReq.passwordResetToken = crypto.AES.encrypt(
-      email,
-      process.env.HASH_SECRET
-    ).toString();
+    const hashConfirm = utils.generateToken({ email }, process.env.HASH_SECRET);
 
+    userReq.passwordConfirmToken = hashConfirm;
     const user = await User.create(userReq);
     user.password = undefined;
-    user.passwordResetToken = undefined;
+    user.passwordConfirmToken = undefined;
+
+    const htmlToSend = utils.template(
+      { token: userReq.passwordConfirmToken },
+      'confirm_password'
+    );
+    mailer.sendMail(
+      {
+        to: 'Tosi <tosi.paulo@gmail.com>',
+        from: 'tosi.paulo@gmail.com',
+        subject: '🚀 testando utils 🚀',
+        html: htmlToSend,
+      },
+      (err) => console.log(err)
+    );
 
     return res.send({
-      user,
+      message:
+        'Legal! Falta apenas confirmar o e-mail que acabamos de enviar para você.',
     });
   } catch (error) {
     return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
@@ -73,13 +85,13 @@ router.post('/authenticate', async (req, res) => {
 router.get('/confirm/:token', async (req, res) => {
   const token = req.params.token;
 
-  const bytes = crypto.AES.decrypt(token, process.env.HASH_SECRET);
-  const originalText = bytes.toString(crypto.enc.Utf8);
+  utils.verifyToken(token, process.env.HASH_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ error: 'Ops, link inválido' });
+    }
 
-  //const now = new Date();
-  //console.log(now.getHours(), now.getDate());
-  //now.setHours(now.getHours() + 1);
-  //now.setDate(now.getDate() + 1);
+    console.log(decoded);
+  });
 
   try {
     const user = await User.findOne({ email: originalText });
