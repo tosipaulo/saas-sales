@@ -82,35 +82,34 @@ router.post('/authenticate', async (req, res) => {
   }
 });
 
-router.get('/confirm/:token', async (req, res) => {
+router.get('/confirm/:token', (req, res) => {
   const token = req.params.token;
 
-  utils.verifyToken(token, process.env.HASH_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).send({ error: 'Ops, link inválido' });
-    }
-
-    console.log(decoded);
-  });
-
   try {
-    const user = await User.findOne({ email: originalText });
+    utils.verifyToken(token, process.env.HASH_SECRET, async (err, decoded) => {
+      if (err) {
+        return res.status(401).send({ error: 'Ops, link inválido' });
+      }
 
-    if (!user) {
-      return res
-        .status(400)
-        .send({ error: 'Ocorreu algum problema! Tente novamente mais tarde.' });
-    }
+      const { email } = decoded;
+      const user = await User.findOne({ email });
 
-    const userUpdate = await User.findByIdAndUpdate(user.id, {
-      $set: { isConfirm: true },
-    });
+      if (!user) {
+        return res.status(400).send({
+          error: 'Ocorreu algum problema! Tente novamente mais tarde.',
+        });
+      }
 
-    if (userUpdate) {
-      return res.send({
-        message: 'Obrigado por confirma seu cadastro!',
+      const userUpdate = await User.findByIdAndUpdate(user.id, {
+        $set: { isConfirm: true },
       });
-    }
+
+      if (userUpdate) {
+        return res.send({
+          message: 'Obrigado por confirma seu cadastro!',
+        });
+      }
+    });
   } catch (error) {
     return res
       .status(400)
