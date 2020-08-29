@@ -7,20 +7,6 @@ const User = require('../schema/User');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  const htmlToSend = utils.template({ name: '::Tosi::' }, 'confirm_password');
-
-  mailer.sendMail(
-    {
-      to: 'Tosi <tosi.paulo@gmail.com>',
-      from: 'tosi.paulo@gmail.com',
-      subject: '🚀 testando utils 🚀',
-      html: htmlToSend,
-    },
-    (err) => console.log(err)
-  );
-});
-
 router.post('/register', async (req, res) => {
   const { email } = req.body;
 
@@ -30,7 +16,7 @@ router.post('/register', async (req, res) => {
     }
 
     const userReq = req.body;
-    const hashConfirm = utils.generateToken({ email }, process.env.HASH_SECRET);
+    const hashConfirm = utils.generateToken({ email });
 
     userReq.passwordConfirmToken = hashConfirm;
     const user = await User.create(userReq);
@@ -75,8 +61,7 @@ router.post('/authenticate', async (req, res) => {
     }
 
     user.password = undefined;
-
-    return res.send({ user });
+    return res.send({ user, token: utils.generateToken({ email }, 86400) });
   } catch (error) {
     return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
   }
@@ -86,7 +71,7 @@ router.get('/confirm/:token', (req, res) => {
   const token = req.params.token;
 
   try {
-    utils.verifyToken(token, process.env.HASH_SECRET, async (err, decoded) => {
+    utils.verifyToken(token, async (err, decoded) => {
       if (err && err.name == 'TokenExpiredError') {
         return res.status(401).send({ error: 'Ops, link inválido' });
       }

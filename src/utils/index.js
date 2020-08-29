@@ -12,15 +12,15 @@ module.exports = {
     return template(data);
   },
 
-  generateToken: (params = {}, secret) => {
-    return jwt.sign(params, secret, {
+  generateToken: (params = {}, expiresIn = '50000ms') => {
+    return jwt.sign(params, process.env.AUTH_SECRET, {
       algorithm: 'HS256',
-      expiresIn: '50000ms',
+      expiresIn,
     });
   }, //86400
 
-  verifyToken: (token, secret, callback) => {
-    jwt.verify(token, secret, (err, decoded) => {
+  verifyToken: (token, callback) => {
+    jwt.verify(token, process.env.AUTH_SECRET, (err, decoded) => {
       callback(err, decoded);
     });
   },
