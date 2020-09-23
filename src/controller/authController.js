@@ -9,7 +9,7 @@ const User = require('../schema/User');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
-  const { email } = req.body;
+  const { email, name } = req.body;
 
   try {
     if (await User.findOne({ email })) {
@@ -25,14 +25,18 @@ router.post('/register', async (req, res) => {
     user.passwordConfirmToken = undefined;
 
     const htmlToSend = utils.template(
-      { token: userReq.passwordConfirmToken },
+      {
+        token: userReq.passwordConfirmToken,
+        name,
+        base_url: `${process.env.BASE_URL}/auth/confirm/`,
+      },
       'confirm_password'
     );
     mailer.sendMail(
       {
-        to: 'Tosi <tosi.paulo@gmail.com>',
-        from: 'tosi.paulo@gmail.com',
-        subject: '🚀 testando utils 🚀',
+        to: email,
+        from: 'APP - Consultora Online <ola@consultoraonline.app.br>',
+        subject: `🥰 Olá, ${name} ! Bem vind...`,
         html: htmlToSend,
       },
       (err) => console.log(err)
