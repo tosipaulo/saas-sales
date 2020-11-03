@@ -23,6 +23,7 @@
     "express": "^4.17.1",
     "handlebars": "^4.7.6",
     "jsonwebtoken": "^8.5.1",
+    "mongo-tenant": "^1.8.0",
     "mongoose": "^5.10.0",
     "nodemailer": "^4.6.8",
     "pm2": "^4.4.0"

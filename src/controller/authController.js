@@ -13,20 +13,18 @@ router.post('/register', async (req, res) => {
 
   try {
     if (await User.findOne({ email })) {
-      return res.status(400).send({ error: 'Ops! e-mail já cadastrado' });
+      return res.status(400).send({ message: 'Ops! e-mail já cadastrado' });
     }
 
-    const userReq = req.body;
-    const hashConfirm = utils.generateToken({ email });
+    const tokenJWT = utils.generateTokenJWT({ email });
 
-    userReq.passwordConfirmToken = hashConfirm;
-    const user = await User.create(userReq);
+    const user = await User.create(req.body);
     user.password = undefined;
     user.passwordConfirmToken = undefined;
 
-    const htmlToSend = utils.template(
+    /* const htmlToSend = utils.template(
       {
-        token: userReq.passwordConfirmToken,
+        token: tokenJWT,
         name,
         base_url: `${process.env.BASE_URL}/auth/confirm/`,
       },
@@ -40,14 +38,15 @@ router.post('/register', async (req, res) => {
         html: htmlToSend,
       },
       (err) => console.log(err)
-    );
+    ); */
 
     return res.send({
       message:
         'Legal! Falta apenas confirmar o e-mail que acabamos de enviar para você.',
+        tokenJWT
     });
   } catch (error) {
-    return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
+    return res.status(400).send({ message: 'Ops! Erro ao cadastrar seu e-mail' });
   }
 });
 
@@ -66,7 +65,7 @@ router.post('/authenticate', async (req, res) => {
     }
 
     user.password = undefined;
-    return res.send({ user, token: utils.generateToken({ email }, 86400) });
+    return res.send({ user, token: utils.generateTokenJWT({ email, id: user.id  }, 86400) });
   } catch (error) {
     return res.status(400).send({ error: 'Ops! Erro ao cadastrar seu e-mail' });
   }
@@ -78,13 +77,13 @@ router.get('/confirm/:token', (req, res) => {
   try {
     utils.verifyToken(token, async (err, decoded) => {
       if (err && err.name == 'TokenExpiredError') {
-        return res.status(401).send({ error: 'Ops, link inválido' });
+        return res.status(401).send({ message: 'Ops, link inválido', error: err});
       }
 
       if (err && err.name == 'JsonWebTokenError') {
         return res
           .status(401)
-          .send({ error: 'Ops, link quebrado', redirect: true });
+          .send({ message: 'Ops, link quebrado', redirect: true });
       }
 
       const { email } = decoded;
@@ -92,7 +91,7 @@ router.get('/confirm/:token', (req, res) => {
 
       if (!user) {
         return res.status(400).send({
-          error: 'Ocorreu algum problema! Tente novamente mais tarde.',
+          message: 'Ocorreu algum problema! Tente novamente mais tarde.',
         });
       }
 
@@ -109,7 +108,7 @@ router.get('/confirm/:token', (req, res) => {
   } catch (error) {
     return res
       .status(400)
-      .send({ error: 'Ops! Erro ao confirmar seu cadastro' });
+      .send({ message: 'Ops! Erro ao confirmar seu cadastro' });
   }
 });
 

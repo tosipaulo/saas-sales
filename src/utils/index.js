@@ -12,7 +12,7 @@ module.exports = {
     return template(data);
   },
 
-  generateToken: (params = {}, expiresIn = '50000ms') => {
+  generateTokenJWT: (params = {}, expiresIn = '50000ms') => {
     return jwt.sign(params, process.env.AUTH_SECRET, {
       algorithm: 'HS256',
       expiresIn,
